@@ -1,0 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# editor stuff
+.vscode/*
+!.vscode/settings.json
+
+# Misc
+build
+*.swp
