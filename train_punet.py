@@ -42,17 +42,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Set up Dataset
 if config['dataset'] == 'CoNIC':
-    from dataloader import CoNIC_DataLoader_Seg
+    from dataloader import CoNIC_DATASET
 
     num_class = 6
     print('[INFO] Building DataLoader for CoNIC Dataset')
 
     image_file = '/data/data/conic_images.npy'
-    images = np.load(image_file)[:10,:,:,:].astype(np.float32)
+    images = np.load(image_file).astype(np.float32)
     mask_file = '/data/data/conic_masks.npy'
-    masks = np.load(mask_file)[:10,:,:,1].astype(np.int32)
+    masks = np.load(mask_file)[:,:,:,1].astype(np.int32)
 
-    dataset = CoNIC_DataLoader_Seg(images, masks, w=256, h=256, 
+    dataset = CoNIC_DATASET(images, masks, w=256, h=256, 
                                    transformation=True, if_crop=False)
 
     if config['use_loss_weight']:
@@ -63,7 +63,7 @@ if config['dataset'] == 'CoNIC':
         loss_weight = None
 
 elif config['dataset'] == 'Kaggle':
-    from dataloader_new import Kaggle_DATASET
+    from dataloader import Kaggle_DATASET
 
     num_class = 1
     print('[INFO] Building DataLoader for 2018 Data Science Bowl Dataset')
@@ -74,7 +74,7 @@ elif config['dataset'] == 'Kaggle':
     dataset = Kaggle_DATASET(base_path, sample_sets, config['use_loss_weight'])
 
 elif config['dataset'] == 'Fluorescent':
-    from dataloader_new import FluoRescent_DATASET
+    from dataloader import FluoRescent_DATASET
 
     num_class = 1
     print('[INFO] Building DataLoader for Fluorescent Microscopy Dataset')
