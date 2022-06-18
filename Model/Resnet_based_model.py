@@ -3,8 +3,8 @@ import numpy as np
 from torch.nn import (Module,Conv2d, ReLU, MaxPool2d, Conv2d, init, ModuleList, AvgPool2d,\
                      Sequential, BatchNorm2d, UpsamplingBilinear2d, ConvTranspose2d, Identity, ELU, Dropout2d)
 from torch.distributions import Normal, Independent, kl
-from Blocks import _Conv_BN_Activation, _Resnet_Conv_BN_ReLU, init_weights, init_weights_orthogonal_normal
-from crfrnn_layer.crfrnn.crf import CRF
+from .Blocks import _Conv_BN_Activation, _Resnet_Conv_BN_ReLU, init_weights, init_weights_orthogonal_normal
+from .crfrnn_layer.crfrnn.crf import CRF
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

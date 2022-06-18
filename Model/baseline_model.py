@@ -1,7 +1,7 @@
 import torch
 from torch.nn import (Module,Conv2d, ReLU, MaxPool2d, \
                      Sequential, BatchNorm2d, UpsamplingBilinear2d, ConvTranspose2d, Identity)
-from Blocks import _Conv_BN_Activation, _Conv_BN_Activation_X2
+from .Blocks import _Conv_BN_Activation, _Conv_BN_Activation_X2
 
 
 # Define Models
