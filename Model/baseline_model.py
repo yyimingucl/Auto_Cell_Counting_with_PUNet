@@ -137,6 +137,6 @@ class UNet(Module):
         up3 = self.UpSampling_3(de_conv2)
         de_conv3 = self.conv_block_7(torch.cat((up3, en_conv1), dim=1))
         # ==========================================
-        output = self.out_conv(de_conv3)
+        output = self.output_conv(de_conv3)
 
         return output
