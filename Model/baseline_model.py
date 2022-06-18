@@ -6,7 +6,7 @@ from .Blocks import _Conv_BN_Activation, _Conv_BN_Activation_X2
 
 # Define Models
 class FCRN_A_BASE(Module):
-    def __init__(self, model_type='base', num_in_channels=3, num_out_channels=7, crf_num_iter=3, activation='relu'):
+    def __init__(self, model_type='base', num_in_channels=3, num_out_channels=7, activation='relu'):
         super(FCRN_A_BASE, self).__init__()
         self.num_in_channels = num_in_channels
         self.num_out_channels = num_out_channels
@@ -39,7 +39,7 @@ class FCRN_A_BASE(Module):
         self.UpSampling_2 = ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2,2), stride=2)
         self.UpSampling_3 = ConvTranspose2d(in_channels=64, out_channels=64, kernel_size=(2,2), stride=2)
         
-        # self.CRF = CRF(n_ref=num_in_channels, n_out=num_out_channels, num_iter=crf_num_iter)
+
 
     def forward(self, x):
         # Encoder
@@ -65,8 +65,7 @@ class FCRN_A_BASE(Module):
         de_conv3 = self.conv_block_7(up3)
         # ==========================================
         output = self.conv_block_8(de_conv3)
-        # output = self.CRF(output, x)
-        
+
         return output
     
     
@@ -84,35 +83,34 @@ class UNet(Module):
             self.conv_block = _Conv_BN_Activation_X2
 
         self.conv_block_1 = self.conv_block(num_in_channels=self.num_in_channels, num_out_channels=32, #32
-                        kernel_size=(9,9), activation=activation)
+                        kernel_size=(5,5), activation=activation)
         self.conv_block_2 = self.conv_block(num_in_channels=32, num_out_channels=64,   # 32 64
-                        kernel_size=(7,7), activation=activation)
+                        kernel_size=(5,5), activation=activation)
         self.conv_block_3 = self.conv_block(num_in_channels=64, num_out_channels=128,    # 64 128
                         kernel_size=(5,5), activation=activation)
-        self.conv_block_4 = self.conv_block(num_in_channels=128, num_out_channels=256,    # 128 256     
-                        kernel_size=(3,3), activation=activation)
 
-        self.bottleneck = self.conv_block(num_in_channels=256, num_out_channels=128,    # 128 256     
+        self.bottleneck_1 = self.conv_block(num_in_channels=128, num_out_channels=256,    # 128 256     
+                        kernel_size=(3,3), activation=activation)
+        self.bottleneck_2 = self.conv_block(num_in_channels=256, num_out_channels=256,    # 128 256     
                         kernel_size=(3,3), activation=activation)
 
         self.conv_block_5 =self.conv_block(num_in_channels=256, num_out_channels=128,     # 256 128          
-                        kernel_size=(3,3), activation=activation)
+                        kernel_size=(5,5), activation=activation)
         self.conv_block_6 = self.conv_block(num_in_channels=128, num_out_channels=64,    # 128*2 64
                         kernel_size=(5,5), activation=activation)
         self.conv_block_7 = self.conv_block(num_in_channels=64, num_out_channels=32,     # 64*2  32    
-                        kernel_size=(7,7), activation=activation)
-        self.conv_block_8 = self.conv_block(num_in_channels=32, num_out_channels=self.num_out_channels,  # 32*2 
-                        kernel_size=(9,9), activation=activation)
+                        kernel_size=(5,5), activation=activation)
+
+        self.output_conv = Conv2d(in_channels=32, out_channels=self.num_out_channels, kernel_size=(1, 1))
 
         self.MaxPooling = MaxPool2d(kernel_size=(2,2))   
         
-        # self.UpSampling_1, self.UpSampling_2, self.UpSampling_3 = [UpsamplingBilinear2d(scale_factor=(2,2)) for i in range(3)]
         self.UpSampling_1 = ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2), stride=2)
         self.UpSampling_2 = ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=(2, 2), stride=2)
         self.UpSampling_3 = ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=(2, 2), stride=2)
-        self.UpSampling_4 = ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=(2, 2), stride=2)
 
-        # self.CRF = CRF(n_ref=num_in_channels, n_out=num_out_channels, num_iter=crf_num_iter)
+
+
 
     def forward(self, x):
         # Encoder
@@ -125,11 +123,12 @@ class UNet(Module):
         en_conv3 = self.conv_block_3(pool2)
         pool3 = self.MaxPooling(en_conv3)
         # ==========================================
-        en_conv4 = self.conv_block_4(pool3)
-
+        
+        bottle_1 = self.bottleneck_1(pool3)
+        bottle_2 = self.bottleneck_2(bottle_1)
 
         # Decoder
-        up1 = self.UpSampling_1(en_conv4)
+        up1 = self.UpSampling_1(bottle_2)
         de_conv1 = self.conv_block_5(torch.cat((up1, en_conv3), dim=1))
         # ==========================================
         up2 = self.UpSampling_2(de_conv1)
@@ -138,6 +137,6 @@ class UNet(Module):
         up3 = self.UpSampling_3(de_conv2)
         de_conv3 = self.conv_block_7(torch.cat((up3, en_conv1), dim=1))
         # ==========================================
-        output = self.conv_block_8(de_conv3)
-        # output = self.CRF(output, x)
+        output = self.out_conv(de_conv3)
+
         return output

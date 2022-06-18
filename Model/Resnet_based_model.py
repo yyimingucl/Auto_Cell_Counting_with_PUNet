@@ -4,7 +4,7 @@ from torch.nn import (Module,Conv2d, ReLU, MaxPool2d, Conv2d, init, ModuleList, 
                      Sequential, BatchNorm2d, UpsamplingBilinear2d, ConvTranspose2d, Identity, ELU, Dropout2d)
 from torch.distributions import Normal, Independent, kl
 from .Blocks import _Conv_BN_Activation, _Resnet_Conv_BN_ReLU, init_weights, init_weights_orthogonal_normal
-from .crfrnn_layer.crfrnn.crf import CRF
+# from .crfrnn_layer.crfrnn.crf import CRF
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -29,7 +29,6 @@ class Res_UNet(Module):
         self.num_out_channels = num_out_channels
         self.apply_final_layer = apply_final_layer
         
-        self.Dropout2d = Dropout2d(p = 0.2)
 
         self.conv_block = _Conv_BN_Activation(num_in_channels=self.num_in_channels, num_out_channels=32, kernel_size=(5, 5), activation=activation)       
         self.resnet_block_1 = _Resnet_Conv_BN_ReLU(num_in_channels=32, num_out_channels=64, kernel_size=(5, 5), activation=activation)
@@ -65,9 +64,6 @@ class Res_UNet(Module):
 
         # Bottleneck
         bottle1 = self.resnet_block_3(pool3)
-        
-        # dropped_bottle1 = self.Dropout2d(bottle1)
-
         bottle2 = self.resnet_block_4(bottle1)
         
         # Decoder 
@@ -79,6 +75,7 @@ class Res_UNet(Module):
        
         upsample3 = self.upsample_3(de_conv2)
         de_conv3 = self.resnet_block_7(torch.concat([upsample3, en_conv1], dim=1))
+
         if self.apply_final_layer:
             output = self.output_conv(de_conv3)
             return output
