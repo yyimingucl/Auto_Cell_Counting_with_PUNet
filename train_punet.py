@@ -8,20 +8,21 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from Model import l2_regularisation
 from torch.utils.tensorboard import SummaryWriter
 from loss import pixel_accuracy, mIoU
+from parameter import hyper_param
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 date = datetime.now()
 date = date.strftime('%c')
 
-config = {'num_epochs':30, 
+config = {'num_epochs':hyper_param.num_epochs, 
           'loss':'weighted_ce_loss', 
-          'lr':1e-4,
+          'lr':hyper_param.lr,
           'model_save_folder':'model_weight',
           'log_save_folder':'train_log',
           'dataset': 'CoNIC',
           'use_loss_weight':True,
           'train/valid_split_rate':0.1, 
-          'batch_size':2, 
+          'batch_size':hyper_param.batch_size, 
           'optimizer': 'Adam'}
 
 run_name = '{}_{}_{}'.format(date, 'Prob_UNet', config['dataset'])
@@ -60,7 +61,31 @@ if config['dataset'] == 'CoNIC':
         dataset.obtain_loss_weights(loss_weight)
     else:
         loss_weight = None
+
+elif config['dataset'] == 'Kaggle':
+    from dataloader_new import Kaggle_DATASET
+
+    num_class = 1
+    print('[INFO] Building DataLoader for 2018 Data Science Bowl Dataset')
     
+    base_path = '/data/data-science-bowl-2018/stage1_train'
+    sample_sets = os.listdir(base_path)
+
+    dataset = Kaggle_DATASET(base_path, sample_sets, config['use_loss_weight'])
+
+elif config['dataset'] == 'Fluorescent':
+    from dataloader_new import FluoRescent_DATASET
+
+    num_class = 1
+    print('[INFO] Building DataLoader for Fluorescent Microscopy Dataset')
+
+    base_path = '/data/Fluorescent_Data'
+    sample_sets = os.listdir('/data/Fluorescent_Data/all_images/images')
+
+    dataset = FluoRescent_DATASET(base_path, sample_sets, config['use_loss_weight'])
+
+else:
+    raise NameError('[WARNING] Not Known DataSet Name') 
 
 # Split Train and Valid Dataset and Create DataLoader
 dataset_size = len(dataset)

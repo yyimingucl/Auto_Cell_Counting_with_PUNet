@@ -8,21 +8,22 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from Model import Res_UNet, UNet, FCRN_A_BASE
 from torch.utils.tensorboard import SummaryWriter
 from loss import pixel_accuracy, mIoU
+from parameter import hyper_param
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 date = datetime.now()
 date = date.strftime('%c')
 
 config = {'model':'Res_UNet', 
-          'num_epochs':30, 
+          'num_epochs':hyper_param.num_epochs, 
           'loss':'weighted_ce_loss', 
-          'lr':1e-4,
+          'lr':hyper_param.lr,
           'model_save_folder':'model_weight',
           'log_save_folder':'train_log',
-          'dataset': 'CoNIC',
+          'dataset': 'Kaggle',
           'use_loss_weight':True,
           'train/valid_split_rate':0.1, 
-          'batch_size':16, 
+          'batch_size': hyper_param.batch_size, 
           'optimizer': 'Adam'}
 
 run_name = '{}_{}_{}'.format(date, config['model'], config['dataset'])
@@ -61,7 +62,32 @@ if config['dataset'] == 'CoNIC':
         dataset.obtain_loss_weights(loss_weight)
     else:
         loss_weight = None
+
+elif config['dataset'] == 'Kaggle':
+    from dataloader_new import Kaggle_DATASET
+
+    num_class = 1
+    print('[INFO] Building DataLoader for 2018 Data Science Bowl Dataset')
     
+    base_path = '/data/data-science-bowl-2018/stage1_train'
+    sample_sets = os.listdir(base_path)
+
+    dataset = Kaggle_DATASET(base_path, sample_sets, config['use_loss_weight'])
+
+elif config['dataset'] == 'Fluorescent':
+    from dataloader_new import FluoRescent_DATASET
+
+    num_class = 1
+    print('[INFO] Building DataLoader for Fluorescent Microscopy Dataset')
+
+    base_path = '/data/Fluorescent_Data'
+    sample_sets = os.listdir('/data/Fluorescent_Data/all_images/images')
+
+    dataset = FluoRescent_DATASET(base_path, sample_sets, config['use_loss_weight'])
+
+else:
+    raise NameError('[WARNING] Not Known DataSet Name') 
+
 
 # Split Train and Valid Dataset and Create DataLoader
 dataset_size = len(dataset)
@@ -147,7 +173,7 @@ for epoch in range(config['num_epochs']):
     valid_accuracy = 0
     valid_loss = 0
 
-    for package in train_loader:
+    for package in valid_loader:
 
         data = package[0].to(device)
         target = package[1].to(device)
@@ -164,9 +190,9 @@ for epoch in range(config['num_epochs']):
             iou = mIoU(output, target, n_classes=num_class)
             acc = pixel_accuracy(output, target)
 
-    valid_loss += loss
-    valid_iou_score += iou
-    valid_accuracy += acc
+        valid_loss += loss
+        valid_iou_score += iou
+        valid_accuracy += acc
 
     # -------------------------------- Logging Stats ------------------------------ #
     train_loss = train_loss / train_loader.__len__()
