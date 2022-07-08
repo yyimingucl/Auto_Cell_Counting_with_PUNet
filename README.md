@@ -3,7 +3,8 @@
 This repository is the pytorch implementation of the work **Automatic Cell Counting in Digital Pathology** and provides some baseline deep learning models for segmentation-based cell counting. 
 
 ## Set up Environments 
-
+### 1. Docker 
+### 2. Conda 
 
 ## Repo Structure 
 * data: folder contains the training data 
@@ -15,7 +16,7 @@ This repository is the pytorch implementation of the work **Automatic Cell Count
         + Blocks.py: contains different Convolutional Blocks and various util functions 
 
         + Res_UNet.py: contains Res_UNet 
-                1.Res_UNet: Roberto Morelli et al. (2021): Automating cell counting in fuorescent microscopy through deep learning with c‑ResUnet (https://www.nature.com/articles/s41598-021-01929-5.pdf)
+                1.Res_UNet: Roberto Morelli et al. (2021): Automating cell counting in fuorescent microscopy through deep learning with c‑ResUnet                  (https://www.nature.com/articles/s41598-021-01929-5.pdf)
                 2. CRF: Shuai Zheng et al. (2014): Conditional Random Fields as Recurrent Neural Networks (https://www.robots.ox.ac.uk/~szheng/papers/CRFasRNN.pdf)
                 CRF Implementation and Installation Guide: https://github.com/HapeMask/crfrnn_layer
 
