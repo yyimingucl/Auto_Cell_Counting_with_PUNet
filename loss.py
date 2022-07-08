@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Author: Yiming Yang
+# Date: 08/07/2022
+# Email: y.yang2@napier.ac.uk
+# Description: define various loss functions and evaluation metrics 
+
 import torch
 import numpy as np
 from torch import nn
@@ -11,37 +18,18 @@ beta = 0.5 # parameters in Tversky loss
 gamma = 1. # parameters in Tversky loss
 
 
-def dice_coef_multiclass(preds, targets, smooth=1e-7):
-    '''
-    Dice coefficient for 10 categories. Ignores background pixel label 0
-    Pass to model as metric during compile statement
-    '''
-    # preds = preds[:,1:,:,:]
-    preds = preds[:,1:,:,:]
-    preds = torch.sigmoid(preds.permute((0,2,3,1)))
-    # print(preds.shape)
-    preds = torch.flatten(preds)
-    #preds = preds.view(-1)
-    # targets = targets[:,1:,:,:]
-    targets = nn.functional.one_hot(targets, num_classes = -1)
-    targets = torch.flatten(targets[:,:,:,1:])
-    # targets = targets[:,:,:,1:].view(-1)
-
-    # intersect = torch.sum(preds * targets, axis=-1)
-    # denom = torch.sum(preds + targets, axis=-1)  
-
-    intersect = (preds*targets).sum()
-    return torch.mean(( (2. * intersect + smooth) / (preds.sum() + targets.sum() + smooth)))
-
-def dice_coef_multiclass_loss(preds, targets):
-    '''
-    Dice loss to minimize. Pass to model as loss during compile statement
-    '''
-    return 1 - dice_coef_multiclass(preds, targets)
-
-
-
+    
 def pixel_accuracy(output, mask):
+    """ 
+    Pixelwise Accuracy 
+
+    Args:
+        output (Tensor with dims (b, c, h, w)): predicated mask
+        mask (Tensor with dims (b, c, h, w)): ground truth mask 
+
+    Returns:
+        pixelwise accuracy (float)
+    """
     with torch.no_grad():
         output = torch.argmax(torch.softmax(output, dim=1), dim=1)
         correct = torch.eq(output, mask).int()
@@ -49,6 +37,20 @@ def pixel_accuracy(output, mask):
     return accuracy
 
 def mIoU(pred_mask, mask, smooth=1e-10, n_classes=6):
+    """
+    mean Intersection over Union (mIoU) 
+    remark: if multi-class problem return the mean over each class
+
+    Args:
+        pred_mask (Tensor with dims (b, c, h, w)): predicated mask
+        mask (Tensor with dims (b, c, h, w)): ground truth mask
+        smooth (_type_, optional): avoid zero division. Defaults to 1e-10.
+        n_classes (int, optional): number of object classes. Defaults to 6.
+
+    Returns:
+        mIoU (float)
+    """
+
     with torch.no_grad():
         pred_mask = torch.softmax(pred_mask, dim=1)
         pred_mask = torch.argmax(pred_mask, dim=1)
@@ -72,24 +74,33 @@ def mIoU(pred_mask, mask, smooth=1e-10, n_classes=6):
 
 
 
-
-
-
 class Weighted_Pixel_Wise_CrossEntropyLoss(nn.Module):
+    # CrossEntropy Loss augmented by a map with pixel-wise loss weights to help seperate overlapped cells 
+    # Implementation and Mathematical Details:
+    # CrossEntropy Loss: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+    # Loss Map: https://arxiv.org/pdf/1505.04597.pdf
+
     def __init__(self, reduction='mean', class_weight=None):
+        # reduction (string, optional): reduction to apply to the output: {'none' | 'mean' | 'sum'}. 
+        # - default is 'mean'
+        # class_weight (tensor, optional): define the loss weights on each class. Lenght should be same as number of object classes 
+        # - default is None
         super(Weighted_Pixel_Wise_CrossEntropyLoss, self).__init__()
         self.log_softmax = nn.LogSoftmax(dim=1)
         self.reduction = reduction
         self.class_weight = class_weight
 
     def forward(self, preds, targets, pixelwise_weights=None):
+        # preds (Tensor with dims (b, c, h, w)): predicated mask
+        # targets (Tensor with dims (b, h, w)): ground truth mask
+        # pixelwise_weights (Tensor with dims (b, h, w)): pixelwise loss weights
+        
         if len(targets.shape) == 3:   
             batch_size, H, W = targets.shape
         elif len(targets.shape) == 4:
             batch_size, _, H, W = targets.shape
 
         # Calculate log probabilities
-        # logp = self.log_softmax(preds)
         logp = F.log_softmax(preds, dim=1)
 
         # Gather log probabilities with respect to target
@@ -104,7 +115,6 @@ class Weighted_Pixel_Wise_CrossEntropyLoss(nn.Module):
         elif pixelwise_weights == None:
             weighted_logp = (logp).view(batch_size, -1)
 
-
         # Average over mini-batch
         weighted_loss = -1.0*weighted_logp.mean()
         
@@ -112,11 +122,26 @@ class Weighted_Pixel_Wise_CrossEntropyLoss(nn.Module):
 
 
 class Weighted_Pixel_Wise_FocalLoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
+    # Focal Loss augmented by a map with pixel-wise loss weights to help seperate overlapped cells 
+    # Implementation and Mathematical Details:
+    # Focal Loss: https://arxiv.org/abs/1708.02002v2
+    # Loss Map: https://arxiv.org/pdf/1505.04597.pdf
+    def __init__(self, reduction='mean', class_weight=None):
+        # reduction (string, optional): reduction to apply to the output: {'none' | 'mean' | 'sum'}. 
+        # - default is 'mean'
+        # class_weight (tensor, optional): define the loss weights on each class. Lenght should be same as number of object classes 
+        # - default is None
         super(Weighted_Pixel_Wise_FocalLoss, self).__init__()
         self.log_softmax = nn.LogSoftmax(dim=1)
+        self.reduction = reduction
+        self.class_weight = class_weight
 
     def forward(self, preds, targets, pixelwise_weights=None, alpha=alpha, gamma=gamma):
+        # preds (Tensor with dims (b, c, h, w)): predicated mask
+        # targets (Tensor with dims (b, h, w)): ground truth mask
+        # pixelwise_weights (Tensor with dims (b, h, w)): pixelwise loss weights
+        # alpha (int, ): focal loss parameter - default: 0.8
+        # gamma (int, ): focal loss parameter - default: 1.0
 
         if len(targets.shape) == 3:   
             batch_size, H, W = targets.shape
@@ -146,41 +171,7 @@ class Weighted_Pixel_Wise_FocalLoss(nn.Module):
         
 
 
-class Weighted_Pixel_Wise_DiceCELoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(Weighted_Pixel_Wise_DiceCELoss, self).__init__()
-        self.log_softmax = nn.LogSoftmax(dim=1)
-
-    def forward(self, preds, targets, pixelwise_weights=None):
-        if len(targets.shape) == 3:   
-            batch_size, H, W = targets.shape
-        elif len(targets.shape) == 4:
-            batch_size, _, H, W = targets.shape
-
-        # Calculate log probabilities
-        logp = F.log_softmax(preds, dim=1)
-
-        # Gather log probabilities with respect to target
-        logp = logp.gather(1, targets.view(batch_size, 1, H, W))
-
-        if pixelwise_weights != None: 
-            pixelwise_weights = Variable(pixelwise_weights)
-            # Multiply with weights
-            weighted_logp = (logp * pixelwise_weights).view(batch_size, -1)
-
-        elif pixelwise_weights == None:
-            weighted_logp = (logp).view(batch_size, -1)
 
 
-        # weighted_logp = weighted_logp.sum(1) / pixelwise_weights.view(batch_size, -1).sum(1)
 
-        # Average over mini-batch
-        weighted_loss = -1.0*weighted_logp.mean()
-        
-        # preds = torch.softmax(preds, dim=1)# Pytorch assume the 0th dim as batch size.     
-        dice_loss = dice_coef_multiclass_loss(preds, targets)
-        
-        
-        Dice_CE = weighted_loss + dice_loss
-        
-        return Dice_CE
+

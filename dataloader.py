@@ -1,8 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Author: Yiming Yang
+# Date: 08/07/2022
+# Email: y.yang2@napier.ac.uk
+# Description: define dataloader for three different datasets {'Kaggle Data Science 2018'|'Fluorscent Dataset'|'CoNIC'}
+
 import os
 import torch
 import numpy as np
 from random import random
-from cv2 import imread, resize, IMREAD_GRAYSCALE
 from parameter import hyper_param
 from torch.utils.data import Dataset
 from torch.nn import ModuleList
@@ -12,6 +18,7 @@ from torchvision.transforms.functional import (adjust_brightness, adjust_gamma, 
 
 
 class DATASET_BASE(Dataset):
+    # Base Dataloader Class
     def __init__(self, if_crop=False):
         self.if_crop = if_crop
         self.height, self.width = hyper_param.image_size
@@ -27,7 +34,7 @@ class DATASET_BASE(Dataset):
 
 
     def create_transformer(self):
-        # transformation 
+        # define transformation for input image 
         Rotate_90 = RandomApply(ModuleList([RandomRotation((90,90)),]),p=self.prob_rotate_90)
         Rotate_180 = RandomApply(ModuleList([RandomRotation((180,180)),]),p=self.prob_rotate_180)
         Rotate_270 = RandomApply(ModuleList([RandomRotation((270,270)),]),p=self.prob_rotate_270)
@@ -46,9 +53,8 @@ class DATASET_BASE(Dataset):
                             Rotate_270])
 
 
-    def gen_data(self, image, mask, loss_weight=None):
-        
-        # Adjust Dimension
+    def gen_data(self, image, mask, loss_weight=None):    
+        # generate data 
         image = image.permute(2,0,1)
         mask = mask.unsqueeze(0)
 
@@ -83,12 +89,13 @@ class DATASET_BASE(Dataset):
 
 # Dataset for CoNIC Challenge
 class CoNIC_DATASET(DATASET_BASE):
-    def __init__(self, images, masks, num_class=6):
+    def __init__(self, images, masks, counts, num_class=6):
         super(CoNIC_DATASET, self).__init__(if_crop=False)
         self.images = torch.tensor(images) / 255.
         self.masks = torch.tensor(masks)
         self.loss_weights = None
         self.num_class = num_class
+        self.counts = counts
 
     def __len__(self):
         return self.images.shape[0]
@@ -96,14 +103,15 @@ class CoNIC_DATASET(DATASET_BASE):
     def __getitem__(self, idx):
         image = self.images[idx,:,:,:]
         mask = self.masks[idx,:,:]
+        count = self.counts[idx]
+
         if self.loss_weights is None:
-            return self.gen_data(image, mask)
+            image, mask = self.gen_data(image, mask)
+            return image, mask, count
         else:
             loss_weight = self.loss_weights[idx,:,:]
-            print(loss_weight.shape)
-            print(image.shape)
-            print(mask.shape)
-            return self.gen_data(image, mask, loss_weight)
+            image, mask, loss_weight = self.gen_data(image, mask, loss_weight)
+            return image, mask, loss_weight, count
 
     def obtain_loss_weights(self, loss_weights):
         self.loss_weights = torch.tensor(loss_weights)
@@ -114,25 +122,30 @@ class CoNIC_DATASET(DATASET_BASE):
 
 # Dataset for flour
 class Kaggle_DATASET(DATASET_BASE):
-    def __init__(self, base_path, sample_sets, if_use_loss_weight=False):
+    def __init__(self, base_path, sample_sets, counts, if_use_loss_weight=False):
         super(Kaggle_DATASET, self).__init__(if_crop=False)
         self.base_path = base_path
         self.sample_sets = sample_sets
+        self.counts = counts
         self.if_use_loss_weight = if_use_loss_weight
+
 
     def __len__(self):
         return len(self.sample_sets)
     
     def __getitem__(self, idx):
+        self.idx = idx
         sample_path = os.path.join(self.base_path, self.sample_sets[idx])
+        count = self.counts[self.sample_sets[idx]]
+
         if self.if_use_loss_weight:
             image, mask, loss_weight = self.obtain_data(sample_path)
             image, mask, loss_weight = self.gen_data(image, mask, loss_weight)
-            return image, mask, loss_weight
+            return image, mask, loss_weight, count
         else:
             image, mask = self.obtain_data(sample_path)
             image, mask = self.gen_data(image, mask)
-            return image, mask
+            return image, mask, count
 
 
     def obtain_data(self, sample_path):
@@ -160,12 +173,13 @@ class Kaggle_DATASET(DATASET_BASE):
         else:
             return torch.tensor(image), torch.tensor(mask)
 
-# Dataset for Flourescent Data        
-class FluoRescent_DATASET(DATASET_BASE):
-    def __init__(self, base_path, sample_sets, if_use_loss_weight=False):
-        super(FluoRescent_DATASET, self).__init__(if_crop=False)
+# Dataset for Flourscent Data        
+class Flourscent_DATASET(DATASET_BASE):
+    def __init__(self, base_path, sample_sets, counts, if_use_loss_weight=False):
+        super(Flourscent_DATASET, self).__init__(if_crop=False)
         self.base_path = base_path
         self.sample_sets = sample_sets
+        self.counts = counts
         self.if_use_loss_weight = if_use_loss_weight
     
     def __len__(self):
@@ -176,6 +190,7 @@ class FluoRescent_DATASET(DATASET_BASE):
 
         sample_image_path = os.path.join(self.base_path+'/all_images/images', sample_id)
         sample_mask_path = os.path.join(self.base_path+'/all_masks/masks', sample_id)
+        count = self.counts[sample_id]
 
         image = np.load(sample_image_path).astype(np.float32) / 255.
         image = torch.tensor(image)
@@ -189,11 +204,11 @@ class FluoRescent_DATASET(DATASET_BASE):
             loss_weight = torch.tensor(loss_weight)
 
             image, mask, loss_weight = self.gen_data(image, mask, loss_weight)
-            return image, mask, loss_weight
+            return image, mask, loss_weight, count
         
         else:
             image, mask = self.gen_data(image, mask)
-            return image, mask
+            return image, mask, count
 
 
         

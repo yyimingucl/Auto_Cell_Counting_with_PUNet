@@ -1,137 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Author: Yiming Yang
+# Date: 08/07/2022
+# Email: y.yang2@napier.ac.uk
+# Description: Define the Probabilistic UNet Model.
+#              Referenced from Simon A. A. Kohl et al. (2018): A Probabilistic U-Net for Segmentation of Ambiguous Images
+#              Implementation: https://github.com/stefanknegt/Probabilistic-Unet-Pytorch
+
 import torch
 import numpy as np
-from torch.nn import (Module,Conv2d, ReLU, MaxPool2d, Conv2d, init, ModuleList, AvgPool2d,\
-                     Sequential, BatchNorm2d, UpsamplingBilinear2d, ConvTranspose2d, Identity, ELU, Dropout2d)
+from torch.nn import (Module,Conv2d, Conv2d, init, ModuleList, Sequential)
 from torch.distributions import Normal, Independent, kl
 from .Blocks import _Conv_BN_Activation, _Resnet_Conv_BN_ReLU, init_weights, init_weights_orthogonal_normal
-# from .crfrnn_layer.crfrnn.crf import CRF
+from .Res_UNet import Res_UNet
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-##########################################################################################################################
-##############################                            RES_UNet                        ################################
-##########################################################################################################################
-
-
-
-
-class Res_UNet(Module):
-    def __init__(self, num_in_channels=3, num_out_channels=7, activation='elu', pooling = 'max', apply_final_layer=False):
-        super(Res_UNet, self).__init__()
-
-        if pooling == 'max':
-            self.pool = MaxPool2d((2, 2), stride=2)
-        elif pooling == 'average':
-            self.pool = AvgPool2d((2, 2), stride=2)
-
-        self.num_in_channels = num_in_channels
-        self.num_out_channels = num_out_channels
-        self.apply_final_layer = apply_final_layer
-        
-
-        self.conv_block = _Conv_BN_Activation(num_in_channels=self.num_in_channels, num_out_channels=32, kernel_size=(5, 5), activation=activation)       
-        self.resnet_block_1 = _Resnet_Conv_BN_ReLU(num_in_channels=32, num_out_channels=64, kernel_size=(5, 5), activation=activation)
-        self.resnet_block_2 = _Resnet_Conv_BN_ReLU(num_in_channels=64, num_out_channels=128, kernel_size=(5, 5), activation=activation)
-        
-        self.resnet_block_3 = _Resnet_Conv_BN_ReLU(num_in_channels=128, num_out_channels=256, kernel_size=(3, 3), activation=activation)
-        self.resnet_block_4 = _Resnet_Conv_BN_ReLU(num_in_channels=256, num_out_channels=256, kernel_size=(3, 3), activation=activation)
-
-        self.resnet_block_5 = _Resnet_Conv_BN_ReLU(num_in_channels=256, num_out_channels=128, kernel_size=(5, 5), activation=activation)
-        self.resnet_block_6 = _Resnet_Conv_BN_ReLU(num_in_channels=128, num_out_channels=64, kernel_size=(5, 5), activation=activation)
-        self.resnet_block_7 = _Resnet_Conv_BN_ReLU(num_in_channels=64, num_out_channels=32, kernel_size=(5, 5), activation=activation)
-
-        self.output_conv = Conv2d(in_channels=32, out_channels=self.num_out_channels, kernel_size=(1, 1))
-
-        self.upsample_1 = ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2), stride=2)
-        self.upsample_2 = ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=(2, 2), stride=2)
-        self.upsample_3 = ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=(2, 2), stride=2)
-
-        self.__init_weight()
-
-    def forward(self, x):
-
-        # Encoder 
-        en_conv1 = self.conv_block(x)
-        pool1 = self.pool(en_conv1)
-        
-        en_conv2 = self.resnet_block_1(pool1)
-        pool2 = self.pool(en_conv2)
-
-        en_conv3 = self.resnet_block_2(pool2)
-        pool3 = self.pool(en_conv3)
-        
-
-        # Bottleneck
-        bottle1 = self.resnet_block_3(pool3)
-        bottle2 = self.resnet_block_4(bottle1)
-        
-        # Decoder 
-        upsample1 = self.upsample_1(bottle2)
-        de_conv1 = self.resnet_block_5(torch.concat([upsample1, en_conv3], dim=1))
-
-        upsample2 = self.upsample_2(de_conv1)
-        de_conv2 = self.resnet_block_6(torch.concat([upsample2, en_conv2], dim=1))
-       
-        upsample3 = self.upsample_3(de_conv2)
-        de_conv3 = self.resnet_block_7(torch.concat([upsample3, en_conv1], dim=1))
-
-        if self.apply_final_layer:
-            output = self.output_conv(de_conv3)
-            return output
-        else:
-            return de_conv3
-    
-    def __init_weight(self):
-        for layer in self.modules():
-            if isinstance(layer, Conv2d) or isinstance(layer, ConvTranspose2d):
-                init_weights(layer)
-                
-        
-    
-    def load_trained_weights(self, weight_path):
-        checkpoint = torch.load(weight_path)
-        self.load_state_dict(checkpoint, strict=False)
-    
-
-    def freeze_encoder(self):
-        Freeze_Layrers = ['conv_block', 'resnet_block_1', 'resnet_block_2']
-        for name, layer in self.named_modules():
-            name = name.split('.')[0]
-            if name in Freeze_Layrers and isinstance(layer, Conv2d):
-                for param in layer.parameters():
-                    param.requires_grad = False
-    
-    def freeze_whole_model(self):
-        for param in self.parameters():
-            param.requires_grad = False
-
-
-##########################################################################################################################
-##############################                       CRF RES_UNet                        #################################
-##########################################################################################################################
-
-
-
-class Res_UNet_CRF(Module):
-    def __init__(self, num_in_channels=3, num_out_channels=7, crf_num_iter=5):
-        super(Res_UNet_CRF, self).__init__()
-
-        self.base_model = Res_UNet(num_in_channels = num_in_channels, num_out_channels = num_out_channels, apply_final_layer=True)
-        self.CRF = CRF(n_ref=3, n_out=2, num_iter=crf_num_iter)
-
-    def forward(self, x):
-        output = self.base_model(x)
-        output = self.CRF(output, x)
-        return output
-
-
-
-
-
-##########################################################################################################################
-##############################               Probablistic RES_UNet                        ################################
-##########################################################################################################################
 
 # ResNet Encoder
 class Encoder(Module):
@@ -384,10 +267,8 @@ class ProbabilisticUnet(Module):
 
         #Here we use the posterior sample sampled above
         self.reconstruction = self.reconstruct(use_posterior_mean=reconstruct_posterior_mean, calculate_posterior=False, z_posterior=z_posterior)
-        
         reconstruction_loss = self.criterion(preds=self.reconstruction, targets=segm, pixelwise_weights=loss_weight)
         self.reconstruction_loss = torch.sum(reconstruction_loss)
         self.mean_reconstruction_loss = torch.mean(reconstruction_loss)
 
         return -(self.reconstruction_loss + self.beta * self.kl)
-    

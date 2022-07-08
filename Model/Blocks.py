@@ -1,5 +1,12 @@
-import torch
-from torch.nn import (Module,Conv2d, ReLU, Sequential, BatchNorm2d, Identity, ELU, Softmax, Parameter, ConvTranspose2d)
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Author: Yiming Yang
+# Date: 08/07/2022
+# Email: y.yang2@napier.ac.uk
+# Description: define the different convolutional blocks and functions for building neural networks
+
+
+from torch.nn import (Module,Conv2d, ReLU, Sequential, BatchNorm2d, Identity, ELU, ConvTranspose2d)
 from torch.nn.init import kaiming_normal_, orthogonal_
 
 def _Conv_BN_Activation(num_in_channels, num_out_channels, kernel_size, 
@@ -69,7 +76,6 @@ class _Resnet_Conv_BN_ReLU(Module):
 
         return out  
 
-
 def truncated_normal_(tensor, mean=0, std=1):
     size = tensor.shape
     tmp = tensor.new_empty(size + (4,)).normal_()
@@ -101,8 +107,3 @@ def l2_regularisation(m):
             l2_reg = l2_reg + W.norm(2)
     return l2_reg
 
-# def save_mask_prediction_example(mask, pred, iter):
-# 	plt.imshow(pred[0,:,:],cmap='Greys')
-# 	plt.savefig('images/'+str(iter)+"_prediction.png")
-# 	plt.imshow(mask[0,:,:],cmap='Greys')
-# 	plt.savefig('images/'+str(iter)+"_mask.png")

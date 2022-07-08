@@ -1,6 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Author: Yiming Yang
+# Date: 08/07/2022
+# Email: y.yang2@napier.ac.uk
+# Description: Define two baseline models 1. UNet and 2. Fully Convolutional Regression Network (FCRN)
+#              UNet Referenced from Olaf Ronneberger et al. (2015): U-Net: Convolutional Networks for Biomedical Image Segmentation
+#              (https://arxiv.org/abs/1505.04597)
+#              FCRN Referenced from Weidi Xie et al. (2015): Microscopy Cell Counting with Fully Convolutional Regression Networks
+#              (https://www.robots.ox.ac.uk/~vgg/publications/2015/Xie15/weidi15.pdf)
+
+
 import torch
-from torch.nn import (Module,Conv2d, ReLU, MaxPool2d, \
-                     Sequential, BatchNorm2d, UpsamplingBilinear2d, ConvTranspose2d, Identity)
+from torch.nn import (Module,Conv2d, MaxPool2d, ConvTranspose2d)
 from .Blocks import _Conv_BN_Activation, _Conv_BN_Activation_X2
 
 
