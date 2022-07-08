@@ -32,6 +32,7 @@ This repository is the pytorch implementation of the work **Automatic Cell Count
 
 
 ### Data Visualization 
+#### CoNIC DataSet
 ![CoNIC DataSet](https://github.com/yyimingucl/Auto_Cell_Counting_with_PUNet/blob/main/readme_image/datavisualization.png)
 
 
