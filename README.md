@@ -2,6 +2,9 @@
 
 This repository is the pytorch implementation of the work **Automatic Cell Counting in Digital Pathology** and provides some baseline deep learning models for segmentation-based cell counting. 
 
+## Set up Environments 
+
+
 ## Repo Structure 
 * data: folder contains the training data 
         + loss_weight_generator.py: provides function for producing loss weights.
@@ -31,7 +34,7 @@ This repository is the pytorch implementation of the work **Automatic Cell Count
 * post_process.py: marked watershed algorithm for post-processing generated masks. 
 
 
-### Data Visualization 
+## Data Visualization 
 #### CoNIC DataSet
 ![CoNIC DataSet](https://github.com/yyimingucl/Auto_Cell_Counting_with_PUNet/blob/main/readme_image/datavisualization.png)
 
