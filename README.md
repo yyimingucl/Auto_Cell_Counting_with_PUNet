@@ -6,13 +6,15 @@ This repository is the pytorch implementation of the work **Automatic Cell Count
 * data: folder contains the training data 
         + loss_weight_generator.py: provides function for producing loss weights.
 * Model: modules for storing deep learning models
+
         + crfrnn_layer: modules for implementing Conditional Random Field on 2D image 
+
         + Blocks.py: contains different Convolutional Blocks and various util functions 
+
         + Res_UNet.py: contains Res_UNet 
                 1.Res_UNet: Roberto Morelli et al. (2021): Automating cell counting in fuorescent microscopy through deep learning with c‑ResUnet (https://www.nature.com/articles/s41598-021-01929-5.pdf)
                 2. CRF: Shuai Zheng et al. (2014): Conditional Random Fields as Recurrent Neural Networks (https://www.robots.ox.ac.uk/~szheng/papers/CRFasRNN.pdf)
                 CRF Implementation and Installation Guide: https://github.com/HapeMask/crfrnn_layer
-
 
         + Baseline.py: contains vanilla UNet and Fully Convolutional Regression Netwrok (FCRN)
                 1. UNet: Olaf Ronneberger et al. (2015): U-Net: Convolutional Networks for Biomedical Image Segmentation (https://arxiv.org/abs/1505.04597)
