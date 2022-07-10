@@ -22,9 +22,9 @@ All the experiemnts are running within the deepo docker image which is an all-in
 
 
 
-### 2. Conda run 
+### 2. Conda 
 
-```conda env create --name [Your env name] -f env.yml```
+run with ```conda env create --name [Your env name] -f env.yml```
 
 ## Repo Structure 
 * data: folder contains the training data 
