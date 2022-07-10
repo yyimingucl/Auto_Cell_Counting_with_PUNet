@@ -7,7 +7,7 @@ This repository is the pytorch implementation of the work **Automatic Cell Count
 
 All the experiemnts are running within the deepo docker image which is an all-in-one solution for ML/DL development and supports GPU acceleration. (more details on https://hub.docker.com/r/ufoym/deepo/)
 
-* Step 1 pull image with '''docker pull ufoym/deepo'''
+* Step 1 pull image with ''' docker pull ufoym/deepo '''
 
 * Step 2 run image with '''docker run --runtime=nvidia -i -p 8888:8888 -p 6060:22 --ipc=host --name="[Your Container Name]" -v [The Folder you wanna bind mount with container]:/data ufoym/deepo:latest jupyter'''
 
