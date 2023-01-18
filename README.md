@@ -55,7 +55,7 @@ run with ```conda env create --name [Your env name] -f env.yml```
 * post_process.py: marked watershed algorithm for post-processing generated masks. 
 
 
-## Data Visualization 
+## Data Visualization (Input Image, Target Mask, and Weighted Loss Map)
 ![DataSets](https://github.com/yyimingucl/Auto_Cell_Counting_with_PUNet/blob/main/readme_image/wlm_visual.png)
 
 
