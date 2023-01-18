@@ -26,6 +26,10 @@ All the experiemnts are running within the deepo docker image which is an all-in
 
 run with ```conda env create --name [Your env name] -f env.yml```
 
+### 3. Sample Run
+
+run with ```python [Path]/train_punet.py```
+
 ## Repo Structure 
 * data: folder contains the training data 
         + loss_weight_generator.py: provides function for producing loss weights.
