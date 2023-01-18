@@ -60,11 +60,11 @@ run with ```conda env create --name [Your env name] -f env.yml```
 
 
 ## Results 
-#### Results on Kaggle Dataset
+### Results on Kaggle Dataset
 ![KaggleResult](https://github.com/yyimingucl/Auto_Cell_Counting_with_PUNet/blob/main/readme_image/kaggle_qualitive_visual.png)
-#### Results on Fluorescent Dataset
+### Results on Fluorescent Dataset
 ![FluorescentResult](https://github.com/yyimingucl/Auto_Cell_Counting_with_PUNet/blob/main/readme_image/f_quality.png)
-#### Results on CoNIC Dataset
+### Results on CoNIC Dataset
 ![CoNICResult](https://github.com/yyimingucl/Auto_Cell_Counting_with_PUNet/blob/main/readme_image/conic_quality.png)
 
 
