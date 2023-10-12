@@ -14,7 +14,7 @@ from torch.nn import functional as F
 
 smooth = 1e-6 # avoid 0 division
 alpha = 0.8 # parameters in Focal loss
-beta = 0.5 # parameters in Tversky loss
+beta = 0.7 # parameters in Tversky loss
 gamma = 1. # parameters in Tversky loss
 
 
