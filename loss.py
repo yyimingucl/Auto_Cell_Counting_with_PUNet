@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Author: Yiming Yang
-# Date: 08/07/2022
-# Email: y.yang2@napier.ac.uk
-# Description: define various loss functions and evaluation metrics 
+
+
+# Description: define various loss functions and evaluation metrics
+#Data: 12/10/2023
+#Email: shufany@gmail.com
+
 
 import torch
 import numpy as np
@@ -14,7 +16,7 @@ from torch.nn import functional as F
 
 smooth = 1e-6 # avoid 0 division
 alpha = 0.8 # parameters in Focal loss
-beta = 0.7 # parameters in Tversky loss
+beta = 0.5 # parameters in Tversky loss
 gamma = 1. # parameters in Tversky loss
 
 
